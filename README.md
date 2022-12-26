@@ -3,7 +3,7 @@ Python kompareoring assist CLI
 
 ## Installation
 ```bash
-$ git clone https://github.com/cronusone/kompare
+$ git clone https://github.com/radiantone/kompare
 $ cd kompare
 $ make install
 $ source venv/bin/activate
