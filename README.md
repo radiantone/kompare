@@ -1,5 +1,5 @@
 # kompare
-Python kompareoring assist CLI
+Python CLI to compare documents in elasticsearch and dynamodb and identify the difference
 
 ## Installation
 ```bash
