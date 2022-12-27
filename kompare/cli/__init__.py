@@ -7,7 +7,7 @@ from elasticsearch_dsl import Search
 import elasticsearch
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.CRITICAL,
     format="%(filename)s: "
     "%(levelname)s: "
     "%(funcName)s(): "
@@ -36,7 +36,7 @@ def cli(context, debug):
     else:
         logging.basicConfig(
             format="%(asctime)s : %(name)s %(levelname)s : %(message)s",
-            level=logging.INFO,
+            level=logging.CRITICAL,
         )
 
     logging.debug("Debug ON")
@@ -53,19 +53,34 @@ def check_dynamo(url, table, eid, did, eid_value):
 
     dynamodb = boto3.resource("dynamodb", endpoint_url=url)
     table = dynamodb.Table(table)
-
     response = table.query(
         KeyConditionExpression=Key(did).eq(eid_value)
     )
+
+    return response['Count'] > 0
+
+
+@cli.command(name="ls")
+@click.pass_context
+def list_indices(context):
+    """ List elasticsearch indices """
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        client = elasticsearch.Elasticsearch(context.obj["config"]["elasticsearch"]["url"], verify_certs=False)
+        indices = client.cat.indices(h='index', s='index').split()
+        for index in indices:
+            print(index)
 
 
 @cli.command()
 @click.option("-eid", required=True, help="ElasticSearch document id field name")
 @click.option("-did", required=True, help="DynamoDB document id field name")
-@click.option("-t", "-table", required=True, help="DynamoDB table")
-@click.option("-i", "-index", required=True, help="ElasticSearch index")
-@click.option("-c", "-csv", required=False, is_flag=True, default=False, help="Output all differences in CSV file")
-@click.option("-o", "-out", required=False, default="kompared.csv", help="CSV output filename")
+@click.option("-t", "--table", required=True, help="DynamoDB table")
+@click.option("-i", "--index", required=True, help="ElasticSearch index")
+@click.option("-c", "--csv", required=False, is_flag=True, default=False, help="Output all differences in CSV file")
+@click.option("-o", "--out", required=False, default="kompare.out", help="CSV output filename")
 @click.pass_context
 def diff(context, eid, did, table, index, csv, out):
     """Display differences between elasticsearch and dynamodb"""
@@ -73,37 +88,47 @@ def diff(context, eid, did, table, index, csv, out):
     from progress.bar import Bar
 
     x = PrettyTable()
+    import warnings
 
-    client = elasticsearch.Elasticsearch(context.obj["elasticsearch"]["url"])
-    client.indices.refresh(index)
-    total_docs = client.cat.count(index, params={"format": "json"})
-    bar = Bar('Scanning', max=total_docs)
+    names = ["Dynamo Table","ES Field","DynamoDB Field","Elastic Index","Misses","Total"]
 
-    search = Search(using=client, index=index)
-    dynamo_misses = 0
-    count = 0
+    x.field_names = names
 
-    for hit in search.scan():
-        if eid in hit:
-            eid_value = hit[eid]
-            if not check_dynamo(context.obj["dynamo"]["url"], table, eid, did, eid_value):
-                dynamo_misses += 1
-        else:
-            logger.error(f"No field {eid} in {hit}")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        client = elasticsearch.Elasticsearch(context.obj["config"]["elasticsearch"]["url"], verify_certs=False)
+        client.indices.refresh(index)
+        total_docs = client.cat.count(index, params={"format": "json"})
+        _total = int(total_docs[0]['count'])
+        bar = Bar('Scanning', max=_total)
 
-        bar.next()
+        search = Search(using=client, index=index)
+        dynamo_misses = 0
 
-    # Scan elasticsearch index for documents
-    # Check eid field in each document
-    # Search for document using did field in dynamo
-    # If exists or not exists, record counts
-    import csv
+        for hit in search.scan():
+            if eid in hit:
+                eid_value = hit[eid]
+                if not check_dynamo(context.obj["config"]["dynamodb"]["url"], table, eid, did, eid_value):
+                    dynamo_misses += 1
+            else:
+                logger.error(f"No field {eid} in {hit}")
 
-    # open the file in the write mode
-    with open(out, 'w') as csvfile:
+            bar.next()
 
-        # create the csv writer
-        writer = csv.writer(csvfile)
+        x.add_row([table,index,eid,did,dynamo_misses,_total])
+        print()
+        print(x)
+        # Scan elasticsearch index for documents
+        # Check eid field in each document
+        # Search for document using did field in dynamo
+        # If exists or not exists, record counts
+        import csv
 
-        # write a row to the csv file
-        writer.writerow([])
+        # open the file in the write mode
+        with open(out, 'w') as csvfile:
+
+            # create the csv writer
+            writer = csv.writer(csvfile)
+
+            # write a row to the csv file
+            writer.writerow([])
