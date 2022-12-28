@@ -13,6 +13,8 @@ $ source venv/bin/activate
 
 ## Configuration
 
+When you run elasticsearch container you need to copy the password it shows in the logs to the PASSWORD field of the url in the ini file below.
+
 ```bash
 $ more kompare.ini 
 [elasticsearch]
@@ -55,3 +57,18 @@ Scanning |################################| 1/1
 +--------------+------------+----------------+---------------+--------+-------+
 
 ```
+## Testing
+
+To test the tool locally you can use docker compose to bring up elasticsearch and dynamodb local instances
+
+```bash
+$ docker compose up
+```
+
+Then update the `scripts/insert.py` script to match the PASSWORD reported by elasticsearch container and run it
+
+```bash
+$ python scripts/insert.py
+```
+
+For dynamodb, point your browser to `http://localhost:8009` then create a table and add a document do it with an id field.

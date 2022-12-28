@@ -100,7 +100,7 @@ def list_indices(context):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        client = context['elastic']
+        client = context.obj['elastic']
 
         indices = client.cat.indices(h='index', s='index').split()
         for index in indices:
