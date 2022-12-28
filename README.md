@@ -40,6 +40,11 @@ Commands:
   indices  List elasticsearch indices
   tables   List dynamodb tables
 
+(venv) $ kompare indices
+test-index
+(venv) $ kompare tables
+test
+
 (venv) $ kompare es2dyn -eid id -did id -i test-index -t test
 Scanning |################################| 3/3
 +--------------+------------+----------------+---------------+--------+-------+
