@@ -14,7 +14,6 @@ flake8==6.0.0
 iniconfig==1.1.1
 isort==6.0.0b2
 jmespath==1.0.1
-kompare==0.1.0
 mccabe==0.7.0
 mypy-extensions==0.4.3
 packaging==22.0
