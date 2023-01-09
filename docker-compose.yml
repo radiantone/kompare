@@ -1,0 +1,19 @@
+version: '3.9'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.3
+    hostname: elasticsearch
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      - "ELASTIC_USERNAME=elastic"
+      - "ELASTIC_PASSWORD=DkIedPPSCb"
+
+  dynamo-ui:
+    image: instructure/dynamo-local-admin
+    hostname: dynamo-ui
+    container_name: dynamo-ui
+    ports:
+      - "8009:8000"
